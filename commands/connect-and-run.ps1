@@ -1,15 +1,16 @@
 param(
     $password = "Passw0rd",
-    $localLicenseFile = "E:\Install\Sitecore\license.xml"
-)
-K# $serverip = "WIN-A72Q3IPEUF8"
-$hypervname = "Sitecore Experience Commerce Passw0rd"
-$serverip = (Get-VMNetworkAdapter -VmName $hypervname | Select-Object -ExpandProperty IPAddresses)[0]
-# This should just be run initially (and as administrator)
-set-item WSMan:\localhost\Client\allowunencrypted $true
-Set-Item -Path WSMan:\localhost\Client\TrustedHosts -Value $serverip # or just "*"
+    $username = "administrator",
+    $vmName = "SitecoreXC902",
+    $localLicenseFile = "E:\Install\Sitecore\license.xml",
+    $scriptFile = "$PSScriptRoot\..\install\install-sitecore-0-prereq.ps1",
+    $InstallToolsDir = "c:\install",
+    $sitecoreUser = "balle@scouts.dk",
+    $sitecorePass = ""
 
-$localScript = "${PSScriptRoot}\install.ps1"
+)
+
+$ErrorActionPreference = "STOP"
 
 # Now connect...
 if($password -eq $Null) {
@@ -18,15 +19,22 @@ if($password -eq $Null) {
 
 $password = ConvertTo-SecureString $password -AsPlainText -Force
 $cred = New-Object System.Management.Automation.PSCredential ("administrator", $password)
-$session = New-PSSession -ComputerName $serverip -Credential $cred -EnableNetworkAccess -Authentication Negotiate
-copy-item -ToSession $session -Destination c:\ -Path $localLicenseFile
+$session = New-PSSession -VMName $vmName -Credential $cred
+Invoke-Command -Session $session -ScriptBlock { If(-not (Test-Path c:\install)) { mkdir c:\install } }
+copy-item -ToSession $session -Destination $InstallToolsDir\license.xml -Path $localLicenseFile -Force
+copy-item -ToSession $session -Destination $InstallToolsDir -Path (Join-Path $PSScriptRoot "..\install\*.ps1") -Force
 
-$sitecoreUser = (Read-Host "Enter username for Sitecore site")
-$sitecorePass = (Read-Host "Enter password for ${sitecoreUser}")
+If($sitecoreUser -eq $Null) { $sitecoreUser = (Read-Host "Enter username for Sitecore site") }
+If($sitecorePass -eq $Null) { $sitecorePass = (Read-Host "Enter password for ${sitecoreUser}")  }
 
 $fileArgs = @{
-    SitecoreDownloadUser= $sitecoreUser; 
-    SitecoreDownloadPass=$sitecorePass;
-    InstallToolsDir="c:\install"
+    SitecoreDownloadUser= $sitecoreUser
+    SitecoreDownloadPass=$sitecorePass
+    InstallToolsDir=$InstallToolsDir
+    adminUsername=$username
+    adminPassword=$password
 }
-Invoke-Command -Session $session -File install-sitecore.ps1 -ArgumentList $fileArgs
+Write-Host "Running $localScript"
+Invoke-Command -Session $session -File "${scriptFile}" -ArgumentList $fileArgs
+
+Remove-Session $session

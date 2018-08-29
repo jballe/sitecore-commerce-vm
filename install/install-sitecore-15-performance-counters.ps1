@@ -11,7 +11,7 @@ set-ItemProperty -Path IIS:\AppPools\${Sitename} -Name processModel.password -va
 
 $result = Invoke-WebRequest http://localhost -Headers @{ Host=$Sitename }
 
-set-ItemProperty -Path IIS:\AppPools\${siteName} -Name processModel.identityType -value ApplicationPoolIdentity
-set-ItemProperty -Path IIS:\AppPools\${siteName} -Name processModel.userName -value ""
-set-ItemProperty -Path IIS:\AppPools\${siteName} -Name processModel.password -value ""
+set-ItemProperty -Path IIS:\AppPools\${Sitename} -Name processModel.identityType -value ApplicationPoolIdentity
+set-ItemProperty -Path IIS:\AppPools\${Sitename} -Name processModel.userName -value ""
+set-ItemProperty -Path IIS:\AppPools\${Sitename} -Name processModel.password -value ""
 
